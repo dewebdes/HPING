@@ -1,0 +1,31 @@
+proc string_to_ascii {string_value} {
+    return [lmap c [split $string_value ""] {
+        scan $c %c code
+        # Make the code the result of this inner script
+        string cat $code
+    }]
+}
+while {true} {
+
+	set p [hping recv eth0]
+	set packet [lindex $p 0]
+
+	foreach layer [split $packet +] {
+	    set t [split $layer ()]
+	    set name [lindex $t 0]
+	    set fields [lindex $t 1]
+	    puts $name
+	    foreach field [split $fields ,] {
+		
+		puts "  $field"
+		puts [string_to_ascii "  $field"]
+		
+	    }
+	    puts {}
+	}
+
+	set outs ""
+	append outs "\n\n\n=======\n\n\n"
+	puts $outs
+}
+
