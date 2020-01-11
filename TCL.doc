@@ -1,0 +1,2389 @@
+Tcl scripts are made up of commands separated by newlines or semicolons.
+
+All Tcl commands return results. If a command has no meaningful result then it returns an empty string as its result.
+
+
+The expr command treats all of its arguments together as an arithmetic expression, computes the result of that expression, and returns the result as a string
+expr 20+10
+
+set x 32
+The command returns the new value of the variable. You can read the value of a variable by invoking set with only a single argument:
+set x
+
+any variable can hold any value.
+
+To use the value of a variable in a command, use variable substitution as in the following example:
+expr $x*3
+
+or even multiple times within a word:
+
+set cmd expr
+set x 11
+$cmd $x*$x
+
+Command substitution
+
+set a 44
+set b [expr $a*4]
+
+Quotes and braces
+Double-quotes allow you to specify words that contain spaces. For example, consider the following script:
+
+set x 24
+set y 18
+set z "$x + $y is [expr $x + $y]"
+
+set z {$x + $y is [expr $x + $y]}
+This command sets variable z to the value "$x + $y is [expr $x + $y]"
+
+Control structures
+
+proc power {base p} {
+    set result 1
+    while {$p > 0} {
+        set result [expr $result * $base]
+        set p [expr $p - 1]
+    }
+    return $result
+}
+base will hold the first argument and p will hold the second
+power 2 6
+power 1.15 5
+
+if, for, foreach, and switch
+
+#------------------------------------------------------
+set x 1
+
+if {$x == 2} {puts "$x is 2"} else {puts "$x is not 2"}
+
+if {$x != 1} {
+    puts "$x is != 1"
+} else {
+    puts "$x is 1"
+}
+
+if $x==1 {puts "GOT 1"}
+
+#
+# Be careful, this is just an example
+# Usually you should avoid such constructs,
+# it is less than clear what is going on and it can be dangerous
+#
+set y x
+if "$$y != 1" {
+    puts "$$y is != 1"
+} else {
+    puts "$$y is 1"
+}
+
+#
+# A dangerous example: due to the extra round of substitution,
+# the script stops
+#
+set y {[exit]}
+if "$$y != 1" {
+    puts "$$y is != 1"
+} else {
+    puts "$$y is 1"
+}
+#------------------------------------------------------
+for {set i 0} {$i < 10} {incr i} {
+    puts "I inside first loop: $i"
+}
+
+for {set i 3} {$i < 2} {incr i} {
+    puts "I inside second loop: $i"
+}
+
+puts "Start"
+set i 0
+while {$i < 10} {
+    puts "I inside third loop: $i"
+    incr i
+    puts "I after incr: $i"
+}
+
+set i 0
+incr i
+# This is equivalent to:
+set i [expr {$i + 1}]
+#------------------------------------------------------
+set x 1
+
+# This is a normal way to write a Tcl while loop.
+
+while {$x < 5} {
+    puts "x is $x"
+    set x [expr {$x + 1}]
+}
+
+puts "exited first loop with X equal to $x\n"
+
+# The next example shows the difference between ".." and {...}
+# How many times does the following loop run?  Why does it not
+# print on each pass?
+
+set x 0
+while "$x < 5" {
+    set x [expr {$x + 1}]
+    if {$x > 7} break
+    if "$x > 3" continue
+    puts "x is $x"
+}
+
+puts "exited second loop with X equal to $x"
+#------------------------------------------------------
+set x "ONE"
+set y 1
+set z ONE
+
+# This is probably the easiest and cleanest form of the command
+# to remember:
+switch $x {
+    "$z" {
+        set y1 [expr {$y+1}]
+        puts "MATCH \$z. $y + $z is $y1"
+    }
+    ONE {
+        set y1 [expr {$y+1}]
+        puts "MATCH ONE. $y + one is $y1"
+    }
+    TWO {
+        set y1 [expr {$y+2}]
+        puts "MATCH TWO. $y + two is $y1"
+    }
+    THREE {
+        set y1 [expr {$y+3}]
+        puts "MATCH THREE. $y + three is $y1"
+    }
+    default {
+        puts "$x is NOT A MATCH"
+    }
+}
+
+
+switch $x "$z" {
+    set y1 [expr {$y+1}]
+    puts "MATCH \$z. $y + $z is $y1"
+} ONE {
+    set y1 [expr {$y+1}]
+    puts "MATCH ONE. $y + one is $y1"
+} TWO {
+    set y1 [expr {$y+2}]
+    puts "MATCH TWO. $y + two is $y1"
+} THREE {
+    set y1 [expr {$y+3}]
+    puts "MATCH THREE. $y + three is $y1"
+} default {
+    puts "$x does not match any of these choices"
+}
+
+
+switch $x "ONE" "puts ONE=1" "TWO" "puts TWO=2" "default" "puts NO_MATCH"
+
+switch $x \
+"ONE"     "puts ONE=1"  \
+"TWO"     "puts TWO=2" \
+"default"     "puts NO_MATCH";
+#------------------------------------------------------
+
+String manipulation:
+String Subcommands - length index range:
+
+set string "this is my test string"
+
+puts "There are [string length $string] characters in \"$string\""
+
+puts "[string index $string 1] is the second character in \"$string\""
+
+puts "\"[string range $string 5 10]\" are characters between the 5'th and 10'th"
+
+String comparisons - compare match first last wordend:
+
+set fullpath "/usr/home/clif/TCL_STUFF/TclTutor/Lsn.17"
+set relativepath "CVS/Entries"
+set directorypath "/usr/bin/"
+
+set paths [list $fullpath $relativepath $directorypath]
+
+foreach path $paths  {
+    set first [string first "/" $path]
+    set last [string last "/" $path]
+
+    # Report whether path is absolute or relative
+
+    if {$first != 0} {
+        puts "$path is a relative path"
+    } else {
+        puts "$path is an absolute path"
+    }
+
+    # If "/" is not the last character in $path, report the last word.
+    # else, remove the last "/", and find the next to last "/", and
+    #   report the last word.
+
+    incr last
+    if {$last != [string length $path]} {
+        set name [string range $path $last end]
+        puts "The file referenced in $path is $name"
+    } else {
+        incr last -2;
+        set tmp [string range $path 0 $last]
+        set last [string last "/" $tmp]
+        incr last;
+        set name [string range $tmp $last end]
+        puts "The final directory in $path is $name"
+    }
+
+    # CVS is a directory created by the CVS source code control system.
+    #
+
+    if {[string match "*CVS*" $path]} {
+        puts "$path is part of the source code control tree"
+    }
+
+    # Compare to "a" to determine whether the first char is upper or lower case
+    set comparison [string  compare $name "a"]
+    if {$comparison >= 0} {
+        puts "$name starts with a lowercase letter\n"
+    } else {
+        puts "$name starts with an uppercase letter\n"
+    }
+}
+
+Modifying Strings - tolower, toupper, trim, format:
+
+string tolower string
+Returns string with all the letters converted from upper to lower case.
+string toupper string
+Returns string with all the letters converted from lower to upper case.
+string trim string ?trimChars?
+Returns string with all occurrences of trimChars removed from both ends. By default trimChars are whitespace (spaces, tabs, newlines). Note that the characters are not treated as a "block" of characters - in other words, string trim "davidw" dw would return the string avi and not davi.
+string trimleft string ?trimChars?
+Returns string with all occurrences of trimChars removed from the left. By default trimChars are whitespace (spaces, tabs, newlines)
+string trimright string ?trimChars?
+Returns string with all occurrences of trimChars removed from the right. By default trimChars are whitespace (spaces, tabs, newlines)
+format formatString ?arg1 arg2 ... argN?
+Returns a string formatted in the same manner as the ANSI sprintf procedure. FormatString is a description of the formatting to use. The full definition of this protocol is in the format man page. A useful subset of the definition is that formatString consists of literal words, backslash sequences, and % fields. The % fields are strings which start with a % and end with one of:
+s... Data is a string
+d... Data is a decimal integer
+x... Data is a hexadecimal integer
+o... Data is an octal integer
+f... Data is a floating point number
+The % may be followed by:
+-... Left justify the data in this field
++... Right justify the data in this field
+The justification value may be followed by a number giving the minimum number of spaces to use for the data.
+
+
+set upper "THIS IS A STRING IN UPPER CASE LETTERS"
+set lower "this is a string in lower case letters"
+set trailer "This string has trailing dots ...."
+set leader "....This string has leading dots"
+set both  "((this string is nested in parens )))"
+
+puts "tolower converts this: $upper"
+puts "              to this: [string tolower $upper]\n"
+puts "toupper converts this: $lower"
+puts "              to this: [string toupper $lower]\n"
+puts "trimright converts this: $trailer"
+puts "                to this: [string trimright $trailer .]\n"
+puts "trimleft converts this: $leader"
+puts "               to this: [string trimleft $leader .]\n"
+puts "trim converts this: $both"
+puts "           to this: [string trim $both "()"]\n"
+
+set labels [format "%-20s %+10s " "Item" "Cost"]
+set price1 [format "%-20s %10d Cents Each" "Tomatoes" "30"]
+set price2 [format "%-20s %10d Cents Each" "Peppers" "20"]
+set price3 [format "%-20s %10d Cents Each" "Onions" "10"]
+set price4 [format "%-20s %10.2f per Lb." "Steak" "3.59997"]
+
+puts "\n Example of format:\n"
+puts "$labels"
+puts "$price1"
+puts "$price2"
+puts "$price3"
+puts "$price4"
+
+#------------------------------------------------------
+
+
+I/O, including files on disk, network sockets, and devices such as serial ports
+
+#------------------------------------------------------
+File management:
+
+The simplest methods to access a file are via gets and puts
+use the read command to load an entire file, and then parse the file into lines with the split command.
+
+These methods can also be used for communicating over sockets and pipes. It is even possible, via the so-called virtual file system to use files stored in memory rather than on disk.
+
+
+open fileName ?access? ?permission?
+Opens a file and returns a token to be used when accessing the file via gets, puts, close, etc.
+FileName is the name of the file to open.
+access is the file access mode
+r......Open the file for reading. The file must already exist.
+r+...Open the file for reading and writing. The file must already exist.
+w.....Open the file for writing. Create the file if it doesn't exist, or set the length to zero if it does exist.
+w+..Open the file for reading and writing. Create the file if it doesn't exist, or set the length to zero if it does exist.
+a......Open the file for writing. The file must already exist. Set the current location to the end of the file.
+a+...Open the file for writing. The file does not exist, create it. Set the current location to the end of the file.
+permission is an integer to use to set the file access permissions. The default is rw-rw-rw- (0666). You can use it to set the permissions for the file's owner, the group he/she belongs to and for all the other users. For many applications, the default is fine.
+close fileID
+Closes a file previously opened with open, and flushes any remaining output.
+gets fileID ?varName?
+Reads a line of input from FileID, and discards the terminating newline.
+
+If there is a varName argument, gets returns the number of characters read (or -1 if an EOF occurs), and places the line of input in varName.
+
+If varName is not specified, gets returns the line of input. An empty string will be returned if:
+
+There is a blank line in the file.
+The current location is at the end of the file. (An EOF occurs.)
+puts ?-nonewline? ?fileID? string
+Writes the characters in string to the stream referenced by fileID, where fileID is one of:
+The value returned by a previous call to open with write access.
+stdout
+stderr
+read ?-nonewline? fileID
+Reads all the remaining bytes from fileID, and returns that string. If -nonewline is set, then the last character will be discarded if it is a newline. Any existing end of file condition is cleared before the read command is executed.
+read fileID numBytes
+Reads up to numBytes from fileID, and returns the input as a Tcl string. Any existing end of file condition is cleared before the read command is executed.
+seek fileID offset ?origin?
+Change the current position within the file referenced by fileID. Note that if the file was opened with "a" access that the current position can not be set before the end of the file for writing, but can be set to the beginning of the file for reading.
+fileID is one of:
+a File identifier returned by open
+stdin
+stdout
+stderr
+offset is the offset in bytes at which the current position is to be set. The position from which the offset is measured defaults to the start of the file, but can be from the current location, or the end by setting origin appropriately.
+origin is the position to measure offset from. It defaults to the start of the file. Origin must be one of:
+start.........Offset is measured from the start of the file.
+current...Offset is measured from the current position in the file.
+end...........Offset is measured from the end of the file.
+tell fileID
+Returns the position of the access pointer in fileID as a decimal string.
+flush fileID
+Flushes any output that has been buffered for fileID.
+eof fileID
+returns 1 if an End Of File condition exists, otherwise returns 0.
+
+
+
+
+
+Points to remember about Tcl file access:
+
+The file I/O is buffered. The output may not be sent out when you expect it to be sent. Files will all be closed and flushed when your program exits normally, but may only be closed (not flushed) if the program is terminated in an unexpected manner.
+There are a finite number of open file slots available. If you expect the program to run in a manner that will cause it to open several files, remember to close the files when you are done with them.
+An empty line is indistinguishable from an EOF with the command:
+set string [gets filename]
+Use the eof command to determine if the file is at the end or use the other form of gets (see the example).
+You can't overwrite any data in a file that was opened with a (append) access. You can, however seek to the beginning of the file for gets commands.
+Opening a file with the w+ access will allow you to overwrite data, but will delete all existing data in the file.
+Opening a file with the r+ access will allow you to overwrite data, while saving the existing data in the file.
+By default the commands assume that strings represent "readable" text. If you want to read "binary" data, you will have to use the fconfigure command.
+Often, especially if you deal with configuration data for your programs, you can use the source command instead of the relatively low-level commands presented here. Just make sure your data can be interpreted as Tcl commands and "source" the file.
+
+
+#
+# Count the number of lines in a text file
+#
+set infile [open "myfile.txt" r]
+set number 0
+
+#
+# gets with two arguments returns the length of the line,
+# -1 if the end of the file is found
+#
+while { [gets $infile line] >= 0 } {
+    incr number
+}
+close $infile
+
+puts "Number of lines: $number"
+
+#
+# Also report it in an external file
+#
+set outfile [open "report.out" w]
+puts $outfile "Number of lines: $number"
+close $outfile
+
+
+
+Information about Files - file, glob:
+
+There are two commands that provide information about the file system, glob and file.
+glob provides the access to the names of files in a directory. It uses a name matching mechanism similar to the UNIX ls command or the Windows (DOS) dir command, to return a list of names that match a pattern.
+
+file provides three sets of functionality:
+
+String manipulation appropriate to parsing file names
+dirname ........ Returns directory portion of path
+extension ........ Returns file name extension
+join ........ Join directories and the file name to one string
+nativename ....... Returns the native name of the file/directory
+rootname ....... Returns file name without extension
+split ........ Split the string into directory and file names
+tail .................... Returns filename without directory
+Information about an entry in a directory:
+atime ................ Returns time of last access
+executable ..... Returns 1 if file is executable by user
+exists ................ Returns 1 if file exists
+isdirectory ...... Returns 1 if entry is a directory
+isfile .................. Returns 1 if entry is a regular file
+lstat ................... Returns array of file status information
+mtime ............... Returns time of last data modification
+owned ................ Returns 1 if file is owned by user
+readable ............ Returns 1 if file is readable by user
+readlink ............. Returns name of file pointed to by a symbolic link
+size ..................... Returns file size in bytes
+stat ..................... Returns array of file status information
+type .................... Returns type of file
+writable ............ Returns 1 if file is writeable by user
+Manipulating the files and directories themselves:
+copy ................ Copy a file or a directory
+delete ................ Delete a file or a directory
+mkdir ................ Create a new directory
+rename ................ Rename or move a file or directory
+
+
+set upfile [file join ".." "myfile.out"]
+# upfile will have the value "../myfile.out"
+
+#
+# On Windows the name becomes "..\myfile.out"
+#
+set newname [file nativename [file join ".." "myfile.out"]]
+
+
+
+
+Retrieving all the files with extension ".tcl" in the current directory:
+
+set tclfiles [glob *.tcl]
+puts "Name - date of last modification"
+foreach f $tclfiles {
+    puts "$f - [clock format [file mtime $f] -format %x]"
+}
+(The clock command turns the number of seconds returned by the file mtime command into a simple date string, like "12/22/04")
+
+
+
+
+
+
+
+
+
+
+
+glob ?switches? pattern ?patternN?
+returns a list of file names that match pattern or patternN
+switches may be one of the following (there are more switches available):
+
+-nocomplain
+Allows glob to return an empty list without causing an error. Without this flag, an error would be generated when the empty list was returned.
+-types typeList
+Selects which type of files/directory the command should return. The typeList may consist of type letters, like a "d" for directories and "f" for ordinary files as well as letters and keywords indicating the user's permissions ("r" for files/directories that can be read for instance).
+--
+Marks the end of switches. This allows the use of "-" in a pattern without confusing the glob parser.
+pattern follows the same matching rules as the string match globbing rules with these exceptions:
+
+{a,b,...} Matches any of the strings a,b, etc.
+A "." at the beginning of a filename must match a "." in the filename. The "." is only a wildcard if it is not the first character in a name.
+All "/" must match exactly.
+If the first two characters in pattern are ~/, then the ~ is replaced by the value of the HOME environment variable.
+If the first character in pattern is a ~, followed by a login id, then the ~loginid is replaced by the path of loginid's home directory.
+Note that the filenames that match pattern are returned in an arbitrary order (that is, do not expect them to be sorted in alphabetical order, for instance).
+
+file atime name
+Returns the number of seconds since some system-dependent start date, also known as the "epoch" (frequently 1/1/1970) when the file name was last accessed. Generates an error if the file doesn't exist, or the access time cannot be queried.
+file copy ?-force? name target
+Copy the file/directory name to a new file target (or to an existing directory with that name)
+The switch -force allows you to overwrite existing files.
+file delete ?-force? name
+Delete the file/directory name.
+The switch -force allows you to delete non-empty directories.
+file dirname name
+Returns the directory portion of a path/filename string. If name contains no slashes, file dirname returns a ".". If the last "/" in name is also the first character, it returns a "/".
+file executable name
+Returns 1 if file name is executable by the current user, otherwise returns 0.
+file exists name
+Returns 1 if the file name exists, and the user has search access in all the directories leading to the file. Otherwise, 0 is returned.
+file extension name
+Returns the file extension.
+file isdirectory name
+Returns 1 if file name is a directory, otherwise returns 0.
+file isfile name
+Returns 1 if file name is a regular file, otherwise returns 0.
+file lstat name varName
+This returns the same information returned by the system call lstat. The results are placed in the associative array varName. The indexes in varName are:
+atime.......time of last access
+ctime.......time of last file status change
+dev...........inode's device
+gid............group ID of the file's group
+ino............inode's number
+mode.......inode protection mode
+mtime.....time of last data modification
+nlink........number of hard links
+size...........file size, in bytes
+type..........Type of File
+uid.............user ID of the file's owner
+Because this calls lstat, if name is a symbolic link, the values in varName will refer to the link, not the file that is linked to. (See also the stat subcommand)
+file mkdir name
+Create a new directory name.
+file mtime name
+Returns the time of the last modification in seconds since Jan 1, 1970 or whatever start date the system uses.
+file owned name
+Returns 1 if the file is owned by the current user, otherwise returns 0.
+file readable name
+Returns 1 if the file is readable by the current user, otherwise returns 0.
+file readlink name
+Returns the name of the file a symlink is pointing to. If name isn't a symlink, or can't be read, an error is generated.
+file rename ?-force? name target
+Rename file/directory name to the new name target (or to an existing directory with that name)
+The switch -force allows you to overwrite existing files.
+file rootname name
+Returns all the characters in name up to but not including the last ".". Returns $name if name doesn't include a ".".
+file size name
+Returns the size of name in bytes.
+file stat name varName
+This returns the same information returned by the system call stat. The results are placed in the associative array varName. The indexes in varName are:
+atime.......time of last access
+ctime.......time of last file status change
+dev...........inode's device
+gid............group ID of the file's group
+ino............inode's number
+mode.......inode protection mode
+mtime.....time of last data modification
+nlink........number of hard links
+size...........file size in bytes
+type..........Type of file
+uid.............user ID of the file's owner
+file tail name
+Returns all of the characters in name after the last slash. Returns the name if name contains no slashes.
+file type name
+Returns a string giving the type of file name, which will be one of:
+file...................................Normal file
+directory........................Directory
+characterSpecial.......Character oriented device
+blockSpecial.............. Block oriented device
+fifo...................................Named pipe
+link..................................Symbolic link
+socket...........................Named socket
+file writable name
+Returns 1 if file name is writable by the current user, otherwise returns 0.
+
+
+
+#
+# Report all the files and subdirectories in the current directory
+# For files: show the size
+# For directories: show that they _are_ directories
+#
+
+set dirs [glob -nocomplain -type d *]
+if { [llength $dirs] > 0 } {
+    puts "Directories:"
+    foreach d [lsort $dirs] {
+        puts "    $d"
+    }
+} else {
+    puts "(no subdirectories)"
+}
+
+set files [glob -nocomplain -type f *]
+if { [llength $files] > 0 } {
+    puts "Files:"
+    foreach f [lsort $files] {
+        puts "    [file size $f] - $f"
+    }
+} else {
+    puts "(no files)"
+}
+
+
+
+#------------------------------------------------------
+
+run other applications with the exec command and communicate with them while they run
+
+#------------------------------------------------------
+Lists:
+
+#------------------------------------------------------
+Arrays:
+
+set name(first) "Mary"
+set name(last)  "Poppins"
+
+puts "Full name: $name(first) $name(last)"
+
+
+
+array exists arrayName
+Returns 1 if arrayName is an array variable. Returns 0 if arrayName is a scalar variable, proc, or does not exist.
+array names arrayName ?pattern
+Returns a list of the indices for the associative array arrayName. If pattern is supplied, only those indices that match pattern are returned. The match is done using the globbing technique from string match.
+array size arrayName
+Returns the number of elements in array arrayName.
+array get arrayName
+Returns a list in which each odd member of the list (1, 3, 5, etc) is an index into the associative array. The list element following a name is the value of that array member.
+array set arrayName dataList
+Converts a list into an associative array. DataList is a list in the format of that returned by array get. Each odd member of the list (1, 3, 5, etc) is an index into the associative array, and the list element following that is the value of that array member.
+array unset arrayName ?pattern?
+Unsets all of the elements in the array. If pattern exists, only the elements that match pattern are unset.
+
+
+proc addname {first last} {
+    global name
+
+    # Create a new ID (stored in the name array too for easy access)
+
+    incr name(ID)
+    set id $name(ID)
+
+    set name($id,first) $first   ;# The index is simply a string!
+    set name($id,last)  $last    ;# So we can use both fixed and
+                                 ;# varying parts
+}
+
+#
+# Initialise the array and add a few names
+#
+global name
+set name(ID) 0
+
+addname Mary Poppins
+addname Uriah Heep
+addname Rene Descartes
+addname Leonardo "da Vinci"
+
+#
+# Check the contents of our database
+# The parray command is a quick way to
+# print it
+#
+parray name
+
+#
+# Some array commands
+#
+array set array1 [list {123} {Abigail Aardvark} \
+                       {234} {Bob Baboon} \
+                       {345} {Cathy Coyote} \
+                       {456} {Daniel Dog} ]
+
+puts "Array1 has [array size array1] entries\n"
+
+puts "Array1 has the following entries: \n [array names array1] \n"
+
+puts "ID Number 123 belongs to $array1(123)\n"
+
+if {[array exist array1]} {
+    puts "array1 is an array"
+} else {
+    puts "array1 is not an array"
+}
+
+if {[array exist array2]} {
+    puts "array2 is an array"
+} else {
+    puts "array2 is not an array"
+}
+
+proc existence {variable} {
+    upvar $variable testVar
+    if { [info exists testVar] } {
+	puts "$variable Exists"
+    } else {
+	puts "$variable Does Not Exist"
+    }
+}
+
+# Create an array
+for {set i 0} {$i < 5} {incr i} { set a($i) test }
+
+puts "\ntesting unsetting a member of an array"
+existence a(0)
+puts "a0 has been unset"
+unset a(0)
+existence a(0)
+
+puts "\ntesting unsetting several members of an array, with an error"
+existence a(3)
+existence a(4)
+catch {unset a(3) a(0) a(4)}
+puts "\nAfter attempting to delete a(3), a(0) and a(4)"
+existence a(3)
+existence a(4)
+
+puts "\nUnset all the array's elements"
+existence a
+array unset a *
+
+puts "\ntesting unsetting an array"
+existence a
+puts "a has been unset"
+unset a
+existence a
+
+
+
+
+
+foreach name [array names mydata] {
+    puts "Data on \"$name\": $mydata($name)"
+}
+
+#
+# Get names and values directly
+#
+foreach {name value} [array get mydata] {
+    puts "Data on \"$name\": $value"
+}
+
+
+foreach name [lsort [array names mydata]] {
+    puts "Data on \"$name\": $mydata($name)"
+}
+
+
+
+proc print12 {a} {
+   puts "$a(1), $a(2)"
+}
+
+set array(1) "A"
+set array(2) "B"
+
+print12 $array
+
+
+an array does not have a value. Instead the above code should be:
+proc print12 {array} {
+   upvar $array a
+   puts "$a(1), $a(2)"
+}
+
+set array(1) "A"
+set array(2) "B"
+
+print12 array
+
+
+
+
+
+#
+# The example of the previous lesson revisited - to get a
+# more general "database"
+#
+
+proc addname {db first last} {
+    upvar $db name
+
+    # Create a new ID (stored in the name array too for easy access)
+
+    incr name(ID)
+    set id $name(ID)
+
+    set name($id,first) $first   ;# The index is simply a string!
+    set name($id,last)  $last    ;# So we can use both fixed and
+                                 ;# varying parts
+}
+
+proc report {db} {
+    upvar $db name
+
+    # Loop over the last names: make a map from last name to ID
+
+    foreach n [array names name "*,last"] {
+        #
+        # Split the name to get the ID - the first part of the name!
+        #
+        regexp {^[^,]+} $n id
+
+        #
+        # Store in a temporary array:
+        # an "inverse" map of last name to ID)
+        #
+        set last       $name($n)
+        set tmp($last) $id
+    }
+
+    #
+    # Now we can easily print the names in the order we want!
+    #
+    foreach last [lsort [array names tmp]] {
+        set id $tmp($last)
+        puts "   $name($id,first) $name($id,last)"
+    }
+}
+
+#
+# Initialise the array and add a few names
+#
+set fictional_name(ID) 0
+set historical_name(ID) 0
+
+addname fictional_name Mary Poppins
+addname fictional_name Uriah Heep
+addname fictional_name Frodo Baggins
+
+addname historical_name Rene Descartes
+addname historical_name Richard Lionheart
+addname historical_name Leonardo "da Vinci"
+addname historical_name Charles Baudelaire
+addname historical_name Julius Caesar
+
+#
+# Some simple reporting
+#
+puts "Fictional characters:"
+report fictional_name
+puts "Historical characters:"
+report historical_name
+
+
+#------------------------------------------------------
+Time and date
+
+proc timetst1 {lst} {
+    set x [lsearch $lst "5000"]
+    return $x
+}
+
+proc timetst2 {array} {
+    upvar $array a
+    return $a(5000);
+}
+
+# Make a long list and a large array.
+for {set i 0} {$i < 5001} {incr i} {
+    set array($i) $i
+    lappend list $i
+}
+
+puts "Time for list search: [ time {timetst1 $list} 10]"
+puts "Time for array index: [ time {timetst2 array} 10]"
+#------------------------------------------------------
+
+Events:
+
+#-------------------------------------------
+Adding new commands to Tcl - proc:
+
+proc sum {arg1 arg2} {
+    set x [expr {$arg1 + $arg2}];
+    return $x
+}
+
+puts " The sum of 2 + 3 is: [sum 2 3]\n\n"
+
+proc for {a b c} {
+    puts "The for command has been replaced by a puts";
+    puts "The arguments were: $a\n$b\n$c\n"
+}
+
+for {set i 1} {$i < 10} {incr i}
+
+#-------------------------------------------
+
+Variations in proc arguments and return values:
+
+proc example {first {second ""} args} {
+    if {$second eq ""} {
+        puts "There is only one argument and it is: $first"
+        return 1
+    } else {
+        if {$args eq ""} {
+            puts "There are two arguments - $first and $second"
+            return 2
+        } else {
+            puts "There are many arguments - $first and $second and $args"
+            return "many"
+        }
+    }
+}
+
+set count1 [example ONE]
+set count2 [example ONE TWO]
+set count3 [example ONE TWO THREE ]
+set count4 [example ONE TWO THREE FOUR]
+
+puts "The example was called with $count1, $count2, $count3, and $count4 Arguments"
+
+#-------------------------------------------
+Variable scope - global and upvar:
+
+proc SetPositive {variable value } {
+    upvar $variable myvar
+    if {$value < 0} {
+        set myvar [expr {-$value}]
+    } else {
+        set myvar $value
+    }
+    return $myvar
+}
+
+SetPositive x 5
+SetPositive y -5
+
+puts "X : $x    Y: $y\n"
+
+proc two {y} {
+    upvar 1 $y z                    ;# tie the calling value to variable z
+    upvar 2 x a                     ;# Tie variable x two levels up  to a
+    puts "two: Z: $z A: $a"         ;# Output the values, just to confirm
+    set z 1                         ;# Set z, the passed variable to 1;
+    set a 2                         ;# Set x, two layers up to 2;
+}
+
+proc one {y} {
+    upvar $y z                      ;# This ties the calling value to variable z 
+    puts "one: Z: $z"               ;# Output that value, to check it is 5
+    two z                           ;# call proc two, which will change the value
+}
+
+one y                               ;# Call one, and output X and Y after the call.
+puts "\nX: $x  Y: $y"
+
+
+proc existence {variable} {
+    upvar $variable testVar
+    if { [info exists testVar] } {
+        puts "$variable Exists"
+    } else {
+        puts "$variable Does Not Exist"
+    }
+}
+
+set x 1
+set y 2
+for {set i 0} {$i < 5} {incr i} {
+    set a($i) $i;
+}
+
+puts "\ntesting unsetting a simple variable"
+# Confirm that x exists.
+existence x
+# Unset x
+unset x
+puts "x has been unset"
+# Confirm that x no longer exists.
+existence x
+#-------------------------------------------
+Tcl Data Structures 101 - The list:
+
+set x "a b c"
+puts "Item at index 2 of the list {$x} is: [lindex $x 2]\n"
+
+set y [split 7/4/1776 "/"]
+puts "We celebrate on the [lindex $y 1]'th day of the [lindex $y 0]'th month\n"
+
+set z [list puts "arg 2 is $y" ]
+puts "A command resembles: $z\n"
+
+set i 0
+foreach j $x {
+    puts "$j is item number $i in list x"
+    incr i
+}
+#-------------------------------------------
+Adding & Deleting members of a list:
+
+set b [list a b {c d e} {f {g h}}]
+puts "Treated as a list: $b\n"
+
+set b [split "a b {c d e} {f {g h}}"]
+puts "Transformed by split: $b\n"
+
+set a [concat a b {c d e} {f {g h}}]
+puts "Concated: $a\n"
+
+lappend a {ij K lm}                        ;# Note: {ij K lm} is a single element
+puts "After lappending: $a\n"
+
+set b [linsert $a 3 "1 2 3"]               ;# "1 2 3" is a single element
+puts "After linsert at position 3: $b\n"
+
+set b [lreplace $b 3 5 "AA" "BB"]
+puts "After lreplacing 3 positions with 2 values at position 3: $b\n"
+#-------------------------------------------
+More list commands - lsearch, lsort, lrange:
+
+lsearch list pattern
+Searches list for an entry that matches pattern, and returns the index for the first match, or a -1 if there is no match. By default, lsearch uses "glob" patterns for matching. See the section on globbing.
+lsort list
+Sorts list and returns a new list in the sorted order. By default, it sorts the list into alphabetic order. Note that this command returns the sorted list as a result, instead of sorting the list in place. If you have a list in a variable, the way to sort it is like so: set lst [lsort $lst]
+lrange list first last
+Returns a list composed of the first through last entries in the list. If first is less than or equal to 0, it is treated as the first list element. If last is end or a value greater than the number of elements in the list, it is treated as the end. If first is greater than last then an empty list is returned.
+
+
+set list [list {Washington 1789} {Adams 1797} {Jefferson 1801} \
+               {Madison 1809} {Monroe 1817} {Adams 1825} ]
+
+set x [lsearch $list Washington*]
+set y [lsearch $list Madison*]
+incr x
+incr y -1                        ;# Set range to be not-inclusive
+
+set subsetlist [lrange $list $x $y]
+
+puts "The following presidents served between Washington and Madison"
+foreach item $subsetlist {
+    puts "Starting in [lindex $item 1]: President [lindex $item 0] "
+}
+
+set x [lsearch $list Madison*]
+
+set srtlist [lsort $list]
+set y [lsearch $srtlist Madison*]
+
+puts "\n$x Presidents came before Madison chronologically"
+puts "$y Presidents came before Madison alphabetically"
+#-------------------------------------------
+Simple pattern matching - "globbing":
+
+*
+Matches any quantity of any character
+?
+Matches one occurrence of any character
+\X
+The backslash escapes a special character in globbing just the way it does in Tcl substitutions. Using the backslash lets you use glob to match a * or ?.
+[...]
+Matches one occurrence of any character within the brackets. A range of characters can be matched by using a range between the brackets. For example, [a-z] will match any lower case letter.
+
+# Matches
+string match f* foo
+
+# Matches
+string match f?? foo
+
+# Doesn't match
+string match f foo
+
+# Returns a big list of files on my Debian system.
+set bins [glob /usr/bin/*]
+
+#-------------------------------------------
+Regular Expressions 101:
+
+regexp ?switches? exp string ?matchVar? ?subMatch1 ... subMatchN?
+Searches string for the regular expression exp. If a parameter matchVar is given, then the substring that matches the regular expression is copied to matchVar. If subMatchN variables exist, then the parenthetical parts of the matching string are copied to the subMatch variables, working from left to right.
+regsub ?switches? exp string subSpec varName
+Searches string for substrings that match the regular expression exp and replaces them with subSpec. The resulting string is copied into varName.
+Regular expressions can be expressed in just a few rules.
+
+^
+Matches the beginning of a string
+$
+Matches the end of a string
+.
+Matches any single character
+*
+Matches any count (0-n) of the previous character
++
+Matches any count, but at least 1 of the previous character
+[...]
+Matches any character of a set of characters
+[^...]
+Matches any character *NOT* a member of the set of characters following the ^.
+(...)
+Groups a set of characters into a subSpec.
+
+The + symbol behaves roughly the same as the *, except that it requires at least one character to match. For example, [a-c]+ would match a, abc, or aabcabc, but not an empty string.
+
+
+set sample "Where there is a will, There is a way."
+
+#
+# Match the first substring with lowercase letters only
+#
+set result [regexp {[a-z]+} $sample match]
+puts "Result: $result match: $match"
+
+#
+# Match the first two words, the first one allows uppercase
+set result [regexp {([A-Za-z]+) +([a-z]+)} $sample match sub1 sub2 ]
+puts "Result: $result Match: $match 1: $sub1 2: $sub2"
+
+#
+# Replace a word
+#
+regsub "way" $sample "lawsuit" sample2
+puts "New: $sample2"
+
+#
+# Use the -all option to count the number of "words"
+#
+puts "Number of words: [regexp -all {[^ ]+} $sample]"
+
+
+The total expression is:
+[-+]?[0-9]*\.?[0-9]*
+https://www.tcl.tk/man/tcl8.5/tutorial/Tcl20a.html
+
+You can use this technique to see if a word occurs twice in the same line of text:
+
+set string "Again and again and again ..."
+if { [regexp {(\y\w+\y).+\1} $string => word] } {
+    puts "The word $word occurs at least twice"
+}
+
+#
+# Use the return value of [regexp] to count the number of
+# parentheses ...
+#
+if { [regexp -all {(} $string] != [regexp -all {)} $string] } {
+    puts "Parentheses unbalanced!"
+}
+
+
+We can easily extract the parentheses and put them in a list (the -inline option does that):
+
+set parens  [regexp -inline -all {[()]} $string]
+set balance 0
+set change("(")  1   ;# This technique saves an if-block :)
+set change(")") -1
+
+foreach p $parens {
+    incr balance $change($p)
+
+    if { $balance < 0 } {
+        puts "Parentheses unbalanced!"
+    }
+}
+if { $balance != 0 } {
+    puts "Parentheses unbalanced!"
+}
+
+
+
+#-------------------------------------------
+More Quoting Hell - Regular Expressions 102:
+
+The points to remember as you read the examples are:
+
+A left square bracket ([) has meaning to the substitution phase, and to the regular expression parser.
+A set of parentheses, a plus sign, and a star have meaning to the regular expression parser, but not the Tcl substitution phase.
+A backslash sequence (\n, \t, etc) has meaning to the Tcl substitution phase, but not to the regular expression parser.
+A backslash escaped character (\[) has no special meaning to either the Tcl substitution phase or the regular expression parser.
+
+#
+# Examine an overview of UNIX/Linux disks
+#
+set list1 [list \
+{/dev/wd0a        17086    10958     5272    68%    /}\
+{/dev/wd0f       179824   127798    48428    73%    /news}\
+{/dev/wd0h      1249244   967818   218962    82%    /usr}\
+{/dev/wd0g        98190    32836    60444    35%    /var}]
+
+foreach line $list1 {
+    regexp {[^ ]* *([0-9]+)[^/]*(/[a-z]*)} $line match size mounted;
+    puts "$mounted is $size blocks"
+}
+
+
+#
+# Extracting a hexadecimal value ...
+#
+set line {Interrupt Vector?	[32(0x20)]}
+regexp "\[^\t]+\t\\\[\[0-9]+\\(0x(\[0-9a-fA-F]+)\\)]" $line match hexval
+puts "Hex Default is: 0x$hexval"
+
+#
+# Matching the special characters as if they were ordinary
+#
+set str2 "abc^def"
+regexp "\[^a-f]*def" $str2 match
+puts "using \[^a-f] the match is: $match"
+
+regexp "\[a-f^]*def" $str2 match
+puts "using \[a-f^] the match is: $match"
+
+regsub {\^} $str2 " is followed by: " str3
+puts "$str2 with the ^ substituted is: \"$str3\""
+
+regsub "(\[a-f]+)\\^(\[a-f]+)" $str2 "\\2 follows \\1" str3
+puts "$str2 is converted to \"$str3\""
+
+#-------------------------------------------
+
+Dictionaries as alternative to arrays:
+
+Tcl arrays are collections of variables, rather than values.
+They cannot be passed directly to a procedure as a value. Instead you have to use the array get and array set commands to convert them to a value and back again, or else use the upvar command to create an alias of the array.
+Multidimensional arrays (that is, arrays whose index consists of two or more parts) have to be emulated with constructions like:
+set array(foo,2) 10
+set array(bar,3) 11
+The comma used here is not a special piece of syntax, but instead just part of the string key. In other words, we are using a one-dimensional array, with keys like "foo,2" and "bar,3". This is quite possible, but it can become very clumsy (there can be no intervening spaces for instance).
+Arrays cannot be included in other data structures, such as lists, or sent over a communications channel, without first packing and unpacking them into a string value.
+In Tcl 8.5 the dict command has been introduced. This provides efficient access to key-value pairs, just like arrays, but dictionaries are pure values.
+
+#
+# Create a dictionary:
+# Two clients, known by their client number,
+# with forenames, surname
+#
+dict set clients 1 forenames Joe
+dict set clients 1 surname   Schmoe
+dict set clients 2 forenames Anne
+dict set clients 2 surname   Other
+
+#
+# Print a table
+#
+puts "Number of clients: [dict size $clients]"
+dict for {id info} $clients {
+    puts "Client $id:"
+    dict with info {
+       puts "   Name: $forenames $surname"
+    }
+}
+
+
+
+
+
+
+
+#
+# The example of the previous lesson revisited - using dicts.
+#
+
+proc addname {dbVar first last} {
+    upvar 1 $dbVar db
+
+    # Create a new ID (stored in the name array too for easy access)
+    dict incr db ID
+    set id [dict get $db ID]
+
+    # Create the new record
+    dict set db $id first $first
+    dict set db $id last  $last
+}
+
+proc report {db} {
+
+    # Loop over the last names: make a map from last name to ID
+
+    dict for {id name} $db {
+        # Create a temporary dictionary mapping from
+        # last name to ID, for reverse lookup
+        if {$id eq "ID"} { continue }
+        set last       [dict get $name last]
+        dict set tmp $last $id
+    }
+
+    #
+    # Now we can easily print the names in the order we want!
+    #
+    foreach last [lsort [dict keys $tmp]] {
+        set id [dict get $tmp $last]
+        puts "   [dict get $db $id first] $last"
+    }
+}
+
+#
+# Initialise the array and add a few names
+#
+dict set fictional_name ID 0
+dict set historical_name ID 0
+
+addname fictional_name Mary Poppins
+addname fictional_name Uriah Heep
+addname fictional_name Frodo Baggins
+
+addname historical_name Rene Descartes
+addname historical_name Richard Lionheart
+addname historical_name Leonardo "da Vinci"
+addname historical_name Charles Baudelaire
+addname historical_name Julius Caesar
+
+#
+# Some simple reporting
+#
+puts "Fictional characters:"
+report $fictional_name
+puts "Historical characters:"
+report $historical_name
+
+#-------------------------------------------
+two ways to start another program:
+open ...... run a new program with I/O connected to a file descriptor
+exec ...... run a new program as a subprocess
+The open call is the same call that is used to open a file. If the first character in the file name argument is a "pipe" symbol (|), then open will treat the rest of the argument as a program name, and will run that program with the standard input or output connected to a file descriptor. This "pipe" connection can be used to read the output from that other program or to write fresh input data to it or both.
+
+If the "pipe" is opened for both reading and writing you must be aware that the pipes are buffered. The output from a puts command will be saved in an I/O buffer until the buffer is full, or until you execute a flush command to force it to be transmitted to the other program. The output of this other program will not be available to a read or gets until its output buffer is filled up or flushed explicitly.
+
+The exec call is similar to invoking a program (or a set of programs piped together) from the prompt in an interactive shell or a DOS-box or in a UNIX/Linux shell script. It supports several styles of output redirection, or it can return the output of the other program(s) as the return value of the exec call.
+
+open |progName ?access?
+Returns a file descriptor for the pipe. The progName argument must start with the pipe symbol. If progName is enclosed in quotes or braces, it can include arguments to the subprocess.
+exec ?switches? arg1 ?arg2? ... ?argN?
+exec treats its arguments as the names and arguments for a set of programs to run. If the first args start with a "-", then they are treated as switches to the exec command, instead of being invoked as subprocesses or subprocess options.
+switches are:
+
+-keepnewline
+Retains a trailing newline in the pipeline's output. Normally a trailing newline will be deleted.
+--
+Marks the end of the switches. The next string will be treated as arg1, even if it starts with a "-"
+arg1 ... argN can be one of:
+the name of a program to execute
+a command line argument for the subprocess
+an I/O redirection instruction.
+an instruction to put the new program in the background:
+exec myprog &
+will start the program myprog in the background, and return immediately. There is no connection between that program and the Tcl script, both can run on independently.
+The & must be the last argument - you can use all other types of arguments in front of it.
+[NOTE: add information on how to wait for the program to finish?]
+
+There are many I/O redirection commands. The main subset of these commands is:
+|
+Pipes the standard output of the command preceding the pipe symbol into the standard input of the command following the pipe symbol.
+< fileName
+The first program in the pipe will read input from fileName.
+<@ fileID
+The first program in the pipe will read input from the Tcl descriptor fileID. fileID is the value returned from an open ... "r" command.
+<< value
+The first program in the pipe will read value as its input.
+> fileName
+The output of the last program in the pipe will be sent to fileName. Any previous contents of fileName will be lost.
+>> fileName
+The output of the last program in the pipe will be appended to fileName.
+2> fileName
+The standard error from all the programs in the pipe will be sent to fileName. Any previous contents of fileName will be lost.
+2>> fileName
+The standard error from all the programs in the pipe will be appended to fileName.
+>@ fileID
+The output from the last program in the pipe will be written to fileID. fileID is the value returned from an open ... "w" command.
+
+
+You don't need the quotes that you would put around arguments to escape them from the shell expanding them. In the example, the argument to the sed command is not put in quotes. If it were put in quotes, the quotes would be passed to sed, instead of being stripped off (as the shell does), and sed would report an error.
+If you use the open |cmd "r+" construct, you must follow each puts with a flush to force Tcl to send the command from its buffer to the program. The output from the program itself may be buffered in its output buffer.
+You can sometimes force the output from the external program to flush by sending an exit command to the process.
+
+You can also use the fconfigure command to make a connection (channel) unbuffered.
+
+As already mentioned, expect extension to Tcl provides a much better interface to other programs, which in particular handles the buffering problem.
+[NOTE: add good reference to expect]
+If one of the commands in an open |cmd fails the open does not return an error. However, attempting to read input from the file descriptor with gets $file will return an empty string. Using the gets $file input construct will return a character count of -1.
+Tcl does not expand file names like the UNIX/Linux shells do. So:
+exec ls *.tcl
+will fail - there is most probably no file with the literal name "*.tcl".
+If you need such an expansion, you should use the glob command:
+
+eval exec ls [glob *.tcl]
+or, from Tcl 8.5 onwards:
+exec ls {*}[glob *.tcl]
+where the {*} prefix is used to force the list to become individual arguments.
+If one of the commands in an exec call fails to execute, the exec will return an error, and the error output will include the last line describing the error.
+The exec treats any output to standard error to be an indication that the external program failed. This is simply a conservative assumption: many programs behave that way and they are sloppy in setting return codes.
+
+Some programs however write to standard error without intending this as an indication of an error. You can guard against this from upsetting your script by using the catch command:
+
+if { [catch { exec ls *.tcl } msg] } {
+   puts "Something seems to have gone wrong but we will ignore it"
+}
+To inspect the return code from a program and the possible reason for failure, you can use the global errorInfo variable:
+
+if { [catch { exec ls *.tcl } msg] } {
+   puts "Something seems to have gone wrong:"
+   puts "Information about it: $::errorInfo"
+}
+
+
+
+
+
+#
+# Write a Tcl script to get a platform-independent program:
+#
+# Create a unique (mostly) file name for a Tcl program
+set TMPDIR "/tmp"
+if { [info exists ::env(TMP)] } {
+    set TMPDIR $::env(TMP)
+}
+set tempFileName "$TMPDIR/invert_[pid].tcl"
+
+# Open the output file, and
+# write the program to it
+
+set outfl [open $tempFileName w]
+
+puts $outfl {
+    set len [gets stdin line]
+    if {$len < 5} {exit -1}
+
+    for {set i [expr {$len-1}]} {$i >= 0} {incr i -1} {
+        append l2 [string range $line $i $i]
+    }
+    puts $l2
+    exit 0
+}
+
+# Flush and close the file
+flush $outfl
+close $outfl
+
+#
+# Run the new Tcl script:
+#
+# Open a pipe to the program (for both reading and writing: r+)
+#
+set io [open "|[info nameofexecutable] $tempFileName" r+]
+
+#
+# send a string to the new program
+#     *MUST FLUSH*
+puts $io "This will come back backwards."
+flush $io
+
+# Get the reply, and display it.
+set len [gets $io line]
+
+puts  "To reverse: 'This will come back backwards.'"
+puts "Reversed is: $line"
+puts "The line is $len characters long"
+
+# Run the program with input defined in an exec call
+
+set invert [exec [info nameofexecutable] $tempFileName << \
+       "ABLE WAS I ERE I SAW ELBA"]
+
+# display the results
+puts "The inversion of 'ABLE WAS I ERE I SAW ELBA' is \n $invert"
+
+# Clean up
+file delete $tempFileName
+
+
+
+#-------------------------------------------
+Learning the existence of commands and variables ? - info
+
+
+proc safeIncr {val {amount 1}} {
+    upvar $val v
+    if { [info exists v] } {
+        incr v $amount
+    }  else {
+        set v $amount
+    }
+}
+
+
+info commands ?pattern?
+Returns a list of the commands, both internal commands and procedures, whose names match pattern.
+info exists varName
+Returns 1 if varName exists as a variable (or an array element) in the current context, otherwise returns 0.
+info functions ?pattern?
+Returns a list of the mathematical functions available via the expr command that match pattern.
+info globals ?pattern?
+Returns a list of the global variables that match pattern.
+info locals ?pattern?
+Returns a list of the local variables that match pattern.
+info procs ?pattern?
+Returns a list of the Tcl procedures that match pattern.
+info vars ?pattern?
+Returns a list of the local and global variables that match pattern.
+
+
+
+
+if {[info procs safeIncr] eq "safeIncr"} {
+     safeIncr a
+}
+
+puts "After calling SafeIncr with a non existent variable: $a"
+
+set a 100
+safeIncr a
+puts "After calling SafeIncr with a variable with a value of 100: $a"
+
+safeIncr b -3
+puts "After calling safeIncr with a non existent variable by -3: $b"
+
+set b 100
+safeIncr b -3
+puts "After calling safeIncr with a variable whose value is 100 by -3: $b"
+
+puts "\nThese variables have been defined: [lsort [info vars]]"
+puts "\nThese globals have been defined:   [lsort [info globals]]"
+
+set exist [info procs localproc]
+if {$exist == ""} {
+    puts "\nlocalproc does not exist at point 1"
+}
+
+proc localproc {} {
+    global argv
+
+    set loc1 1
+    set loc2 2
+    puts "\nLocal variables accessible in this proc are: [lsort [info locals]]"
+    puts "\nVariables accessible from this proc are:     [lsort [info vars]]"
+    puts "\nGlobal variables visible from this proc are: [lsort [info globals]]"
+}
+
+set exist [info procs localproc]
+if {$exist != ""} {
+    puts "localproc does exist at point 2"
+}
+
+localproc
+
+
+
+
+
+State of the interpreter - info
+
+info cmdcount
+Returns the total number of commands that have been executed by this interpreter.
+info level ?number?
+Returns the stack level at which the compiler is currently evaluating code. 0 is the top level, 1 is a proc called from top, 2 is a proc called from a proc, etc.
+If number is a positive value, info level returns a the name and arguments of the proc at that level on the stack. Number is that same value that info level would return if it were called in the proc being referenced.
+
+If number number is a negative value, it refers to the current level plus number. Thus, info level returns a the name and arguments of the proc at that level on the stack.
+
+info patchlevel
+Returns the value of the global variable tcl_patchlevel. This is a three-levels version number identifying the Tcl version, like: "8.4.6"
+info script
+Returns the name of the file currently being evaluated, if one is being evaluated. If there is no file being evaluated, returns an empty string.
+This can be used for instance to determine the directory holding other scripts or files of interest (they often live in the same directory or in a related directory), without having to hardcode the paths.
+
+info tclversion
+Returns the value of the global variable tcl_version. This is the revision number of this interpreter, like: "8.4".
+pid
+Returns the process id of the current process.
+
+
+
+
+
+puts "This is how many commands have been executed: [info cmdcount]"
+puts "Now  *THIS* many commands have been executed: [info cmdcount]"
+
+puts "\nThis interpreter is revision level: [info tclversion]"
+puts "This interpreter is at patch level: [info patchlevel]"
+
+puts "The process id for this program is [pid]"
+
+proc factorial {val} {
+    puts "Current level: [info level] - val: $val"
+    set lvl [info level]
+    if {$lvl == $val} {
+        return $val
+    }
+    return [expr {($val-$lvl) * [factorial $val]}]
+}
+
+set count1 [info cmdcount]
+set fact [factorial 3]
+set count2 [info cmdcount]
+puts "The factorial of 3 is $fact"
+puts "Before calling the factorial proc, $count1 commands had been executed"
+puts "After calling the factorial proc, $count2 commands had been executed"
+puts "It took [expr $count2-$count1] commands to calculate this factorial"
+
+#
+# Use [info script] to determine where the other files of interest
+# reside
+#
+set sysdir [file dirname [info script]]
+source [file join $sysdir "utils.tcl"]
+
+
+
+
+
+
+Information about procs - info
+
+info args procname
+Returns a list of the names of the arguments to the procedure procname.
+info body procname
+Returns the body of the procedure procname.
+info default procname arg varName
+Returns 1 if the argument arg in procedure procName has a default, and sets varName to the default. Otherwise, returns 0.
+
+
+
+proc demo {argument1 {default "DefaultValue"} } {
+    puts "This is a demo proc.  It is being called with $argument1 and $default"
+    #
+    # We can use [info level] to find out if a value was given for
+    # the optional argument "default" ...
+    #
+    puts "Actual call: [info level [info level]]"
+}
+
+puts "The args for demo are: [info args demo]\n"
+puts "The body for demo is:  [info body demo]\n"
+
+set arglist [info args demo]
+
+foreach arg $arglist {
+    if {[info default demo $arg defaultval]} {
+        puts "$arg has a default value of $defaultval"
+    } else {
+        puts "$arg has no default"
+    }
+}
+
+#-------------------------------------------
+Modularization - source
+
+
+The source command will load a file and execute it. This allows a program to be broken up into multiple files, with each file defining procedures and variables for a particular area of functionality. For instance, you might have a file called database.tcl that contains all the procedures for dealing with a database, or a file called gui.tcl that handles creating a graphical user interface with Tk. The main script can then simply include each file using the source command. 
+
+source fileName
+Reads the script in fileName and executes it. If the script executes successfully, source returns the value of the last statement in the script.
+If there is an error in the script, source will return that error.
+If there is a return (other than within a proc definition) then source will return immediately, without executing the remainder of the script.
+If fileName starts with a tilde (~) then $env(HOME) will substituted for the tilde, as is done in the file command.
+
+
+sourcedata.tcl:
+
+# Example data file to be sourced
+set scr [info script]
+proc testproc {} {
+    global scr
+    puts "testproc source file: $scr"
+}
+set abc 1
+return
+set aaaa 1
+sourcemain.tcl:
+
+set filename "sourcedata.tcl"
+puts "Global variables visible before sourcing $filename:"
+puts "[lsort [info globals]]\n"
+
+if {[info procs testproc] eq ""} {
+    puts "testproc does not exist.  sourcing $filename"
+    source $filename
+}
+
+puts "\nNow executing testproc"
+testproc
+
+puts "Global variables visible after sourcing $filename:"
+puts "[lsort [info globals]]\n"
+
+
+
+
+
+
+Building reusable libraries - packages and namespaces
+
+# Register the package
+package provide tutstack 1.0
+package require Tcl      8.5
+
+# Create the namespace
+namespace eval ::tutstack {
+    # Export commands
+    namespace export create destroy push pop peek empty
+
+    # Set up state
+    variable stack
+    variable id 0
+}
+
+# Create a new stack
+proc ::tutstack::create {} {
+    variable stack
+    variable id
+
+    set token "stack[incr id]"
+    set stack($token) [list]
+    return $token
+}
+
+# Destroy a stack
+proc ::tutstack::destroy {token} {
+    variable stack
+
+    unset stack($token)
+}
+
+# Push an element onto a stack
+proc ::tutstack::push {token elem} {
+    variable stack
+
+    lappend stack($token) $elem
+}
+
+# Check if stack is empty
+proc ::tutstack::empty {token} {
+    variable stack
+
+    set num [llength $stack($token)]
+    return [expr {$num == 0}]
+}
+
+# See what is on top of the stack without removing it
+proc ::tutstack::peek {token} {
+    variable stack
+
+    if {[empty $token]} {
+	error "stack empty"
+    }
+
+    return [lindex $stack($token) end]
+}
+
+# Remove an element from the top of the stack
+proc ::tutstack::pop {token} {
+    variable stack
+
+    set ret [peek $token]
+    set stack($token) [lrange $stack($token) 0 end-1]
+    return $ret
+}
+And some code which uses it:
+
+package require tutstack 1.0
+
+set stack [tutstack::create]
+foreach num {1 2 3 4 5} { tutstack::push $stack $num }
+
+while { ![tutstack::empty $stack] } {
+    puts "[tutstack::pop $stack]"
+}
+
+tutstack::destroy $stack
+
+
+
+
+
+
+
+
+package require tutstack 1.0
+package require Tcl      8.5
+
+namespace eval ::tutstack {
+    # Create the ensemble command
+    namespace ensemble create
+}
+
+# Now we can use our stack through the ensemble command
+set stack [tutstack create]
+foreach num {1 2 3 4 5} { tutstack push $stack $num }
+
+while { ![tutstack empty $stack] } {
+    puts "[tutstack pop $stack]"
+}
+
+tutstack destroy $stack
+
+
+#-------------------------------------------
+
+Creating Commands - eval
+
+set cmd {puts "Evaluating a puts"}
+puts "CMD IS: $cmd"
+eval $cmd
+
+if {[string match [info procs newProcA] ""] } {
+    puts "\nDefining newProcA for this invocation"
+    set num 0;
+    set cmd "proc newProcA "
+    set cmd [concat $cmd "{} {\n"]
+    set cmd [concat $cmd "global num;\n"]
+    set cmd [concat $cmd "incr num;\n"]
+    set cmd [concat $cmd " return \"/tmp/TMP.[pid].\$num\";\n"]
+    set cmd [concat $cmd "}"]
+    eval  $cmd
+}
+
+puts "\nThe body of newProcA is: \n[info body newProcA]\n"
+
+puts "newProcA returns: [newProcA]"
+puts "newProcA returns: [newProcA]"
+
+#
+# Define a proc using lists
+#
+
+if {[string match [info procs newProcB] ""] } {
+    puts "\nDefining newProcB for this invocation"
+    set cmd "proc newProcB "
+    lappend cmd {}
+    lappend cmd {global num; incr num; return $num;}
+
+    eval  $cmd
+}
+
+puts "\nThe body of newProcB is: \n[info body newProcB]\n"
+puts "newProcB returns: [newProcB]"
+
+
+
+
+
+
+
+set cmd "OK"
+eval puts $cmd
+
+set cmd "puts" ; lappend cmd {Also OK}; eval $cmd
+
+set cmd "NOT OK"
+eval puts $cmd
+
+eval [format {%s "%s"} puts "Even This Works"]
+
+set cmd "And even this can be made to work"
+
+eval [format {%s "%s"} puts $cmd ]
+
+set tmpFileNum 0;
+
+set cmd {proc tempFileName }
+lappend cmd ""  
+lappend cmd "global num; incr num; return \"/tmp/TMP.[pid].\$num\""
+eval  $cmd
+
+puts "\nThis is the body of the proc definition:"
+puts "[info body tempFileName]\n"
+
+set cmd {puts "This is Cool!}
+
+if {[info complete $cmd]} {
+    eval $cmd
+} else {
+    puts "INCOMPLETE COMMAND: $cmd"
+}
+
+#-------------------------------------------
+Substitution without evaluation - format, subst
+
+
+set a "alpha"
+set b a
+
+puts {a and b with no substitution: $a $$b}
+puts "a and b with one pass of substitution: $a $$b"
+puts "a and b with subst in braces: [subst {$a $$b}]"
+puts "a and b with subst in quotes: [subst "$a $$b"]\n"
+
+puts "format with no subst [format {$%s} $b]"
+puts "format with subst: [subst [format {$%s} $b]]"
+eval "puts \"eval after format: [format {$%s} $b]\""
+
+set num 0;
+set cmd "proc tempFileName {} "
+set cmd [format "%s {global num; incr num;" $cmd]
+set cmd [format {%s return "/tmp/TMP.%s.$num"} $cmd [pid] ]
+set cmd [format "%s }" $cmd ]
+eval $cmd
+
+puts "[info body tempFileName]"
+
+set a arrayname
+set b index
+set c newvalue
+eval [format "set %s(%s) %s" $a $b $c]
+
+puts "Index: $b of $a was set to: $arrayname(index)"
+#-------------------------------------------
+Changing Working Directory - cd, pwd
+
+cd ?dirName?
+Changes the current directory to dirName (if dirName is given, or to the $HOME directory if dirName is not given. If dirName is a tilde (~, cd changes the working directory to the users home directory. If dirName starts with a tilde, then the rest of the characters are treated as a login id, and cd changes the working directory to that user's $HOME.
+pwd
+Returns the current directory.
+Example
+set dirs [list TEMPDIR]
+
+puts "[format "%-15s  %-20s " "FILE" "DIRECTORY"]"
+
+foreach dir $dirs {
+    catch {cd $dir}
+    set c_files [glob -nocomplain c*]
+
+    foreach name $c_files {
+        puts "[format "%-15s  %-20s " $name [pwd]]"
+    }
+}
+#-------------------------------------------
+Debugging and Errors - errorInfo errorCode catch error return
+
+
+error message ?info? ?code?
+Generates an error condition and forces the Tcl call stack to unwind, with error information being added at each step.
+
+If info or code are provided, the errorInfo and errorCode variables are initialized with these values.
+
+catch script ?varName?
+Evaluates and executes script. The return value of catch is the status return of the Tcl interpreter after it executes script If there are no errors in script, this value is 0. Otherwise it is 1.
+
+If varName is supplied, the value returned by script is placed in varName if the script successfully executes. If not, the error is placed in varName.
+
+return ?-code code? ?-errorinfo info? ?-errorcode errorcode? ?value?
+Generates a return exception condition. The possible arguments are:
+-code code
+The next value specifies the return status. code must be one of:
+ok - Normal status return
+error - Proc returns error status
+return - Normal return
+break - Proc returns break status
+continue - Proc returns continue status
+These allow you to write procedures that behave like the built in commands break, error, and continue.
+-errorinfo info
+info will be the first string in the errorInfo variable.
+-errorcode errorcode
+The proc will set errorCode to errorcode.
+value
+The string value will be the value returned by this proc.
+errorInfo
+errorInfo is a global variable that contains the error information from commands that have failed.
+errorCode
+errorCode is a global variable that contains the error code from command that failed. This is meant to be in a format that is easy to parse with a script, so that Tcl scripts can examine the contents of this variable, and decide what to do accordingly.
+Example
+proc errorproc {x} {
+    if {$x > 0} {
+	error "Error generated by error" "Info String for error" $x
+    }
+}
+
+catch errorproc
+puts "after bad proc call: ErrorCode: $errorCode"
+puts "ERRORINFO:\n$errorInfo\n"
+
+set errorInfo "";
+catch {errorproc 0}
+puts "after proc call with no error: ErrorCode: $errorCode"
+puts "ERRORINFO:\n$errorInfo\n"
+
+catch {errorproc 2}
+puts "after error generated in proc: ErrorCode: $errorCode"
+puts "ERRORINFO:\n$errorInfo\n"
+
+
+proc returnErr { x } {
+    return -code error -errorinfo "Return Generates This" -errorcode "-999"
+}
+
+catch {returnErr 2}
+puts "after proc that uses return to generate an error: ErrorCode: $errorCode"
+puts "ERRORINFO:\n$errorInfo\n"
+
+proc withError {x} {
+    set x $a
+}
+
+catch {withError 2}
+puts "after proc with an error: ErrorCode: $errorCode"
+puts "ERRORINFO:\n$errorInfo\n"
+
+catch {open [file join no_such_directory no_such_file] r}
+puts "after an error call to a nonexistent file:"
+puts "ErrorCode: $errorCode"
+puts "ERRORINFO:\n$errorInfo\n"
+
+
+
+
+
+proc traceproc {variableName arrayElement operation} {
+    set op(write) Write
+    set op(unset) Unset
+    set op(read) Read
+
+    set level [info level]
+    incr level -1
+    if {$level > 0} {
+	set procid [info level $level]
+    } else {
+	set procid "main"
+    }
+
+    if {![string match $arrayElement ""]} {
+	puts "TRACE: $op($operation) $variableName($arrayElement) in $procid"
+    } else {
+	puts "TRACE: $op($operation) $variableName in $procid"
+    }
+}
+
+proc testProc {input1 input2} {
+    upvar $input1 i
+    upvar $input2 j
+
+    set i 2
+    set k $j
+}
+
+trace add variable i1 write traceproc
+trace add variable i2 read traceproc
+trace add variable i2 write traceproc
+
+set i2 "testvalue"
+
+puts "\ncall testProc"
+testProc i1 i2
+
+puts "\nTraces on i1: [trace info variable i1]"
+puts "Traces on i2: [trace info variable i2]\n"
+
+trace remove variable i2 read traceproc
+puts "Traces on i2 after vdelete: [trace info variable i2]"
+
+puts "\ncall testProc again"
+testProc i1 i2
+
+#-------------------------------------------
+Command line arguments and environment strings
+
+puts "There are $argc arguments to this script"
+puts "The name of this script is $argv0"
+if {$argc > 0} {puts "The other arguments are: $argv" }
+
+puts "You have these environment variables set:"
+foreach index [array names env] {
+    puts "$index: $env($index)"
+}
+#-------------------------------------------
+Channel I/O: socket, fileevent, vwait
+
+A stream based channel is created with the open command, as discussed in lesson 26. A socket based channel is created with a socket command. A socket can be opened as either as a client, or as a server.
+
+If a socket channel is opened as a server, then the tcl program will 'listen' on that channel for another task to attempt to connect with it. When this happens, a new channel is created for that link (server-> new client), and the tcl program continues to listen for connections on the original port number. In this way, a single Tcl server could be talking to several clients simultaneously.
+
+When a channel exists, a handler can be defined that will be invoked when the channel is available for reading or writing. This handler is defined with the fileevent command. When a tcl procedure does a gets or puts to a blocking device, and the device isn't ready for I/O, the program will block until the device is ready. This may be a long while if the other end of the I/O channel has gone off line. Using the fileevent command, the program only accesses an I/O channel when it is ready to move data.
+
+Finally, there is a command to wait until an event happens. The vwait command will wait until a variable is set. This can be used to create a semaphore style functionality for the interaction between client and server, and let a controlling procedure know that an event has occurred.
+
+Note in particular the flush commands being used. Just as a channel that is opened as a pipe to a command doesn't send data until either a flush is invoked, or a buffer is filled, the socket based channels don't automatically send data.
+
+
+socket -server command ?options? port
+The socket command with the -server flag starts a server socket listing on port port. When a connection occurs on port, the proc command is called with the arguments:
+channel - The channel for the new client
+address - The IP Address of this client
+port The port that is assigned to this client
+socket ?options? host port
+The socket command without the -server option opens a client connection to the system with IP Address host and port address port. The IP Address may be given as a numeric string, or as a fully qualified domain address.
+To connect to the local host, use the address 127.0.0.1 (the loopback address).
+fileevent channelID readable ?script?
+fileevent channelID writeable ?script?
+The fileevent command defines a handler to be invoked when a condition occurs. The conditions are readable, which invokes script when data is ready to be read on channelID, and writeable, when channelID is ready to receive data. Note that end-of-file must be checked for by the script.
+vwait varName
+The vwait command pauses the execution of a script until some background action sets the value of varName. A background action can be a proc invoked by a fileevent, or a socket connection, or an event from a tk widget.
+Examples
+proc serverOpen {channel addr port} {
+    global connected
+    set connected 1
+    fileevent $channel readable "readLine Server $channel"
+    puts "OPENED"
+}
+
+proc readLine {who channel} {
+    global didRead
+    if { [gets $channel line] < 0} {
+	fileevent $channel readable {}
+	after idle "close $channel;set out 1"
+    } else {
+	puts "READ LINE: $line"
+	puts $channel "This is a return"
+	flush $channel;
+	set didRead 1
+    }
+}
+
+set connected 0
+# catch {socket -server serverOpen 33000} server
+set server [socket -server serverOpen 33000]
+
+after 100 update
+
+set sock [socket -async 127.0.0.1 33000]
+vwait connected
+
+puts $sock "A Test Line"
+flush $sock
+vwait didRead
+set len [gets $sock line]
+puts "Return line: $len -- $line"
+
+catch {close $sock}
+vwait out
+close $server
+#-------------------------------------------
+Time and Date - clock
+
+
+The clock command is a platform independent method of getting the display functionality of the unix date command, and provides access to the values returned by a unix gettime() call.
+
+clock seconds
+The clock seconds command returns the time in seconds since the epoch. The date of the epoch varies for different operating systems, thus this value is useful for comparison purposes, or as an input to the clock format command.
+clock format clockValue ?-gmt boolean? ?-format string?
+The format subcommand formats a clockvalue (as returned by clock seconds into a human readable string.
+The -gmt switch takes a boolean as the second argument. If the boolean is 1 or True, then the time will be formatted as Greenwich Mean Time, otherwise, it will be formatted as local time.
+
+The -format option controls what format the return will be in. The contents of the string argument to format has similar contents as the format statement (as discussed in lesson 19, 33 and 34). In addition, there are several more %* descriptors that can be used to describe the output.
+
+These include:
+
+%a . . . . Abbreviated weekday name (Mon, Tue, etc.)
+%A . . . . Full weekday name (Monday, Tuesday, etc.)
+%b . . . . Abbreviated month name (Jan, Feb, etc.)
+%B . . . . Full month name (January, February, etc.)
+%d. . . . . Day of month
+%j . . . . . Julian day of year
+%m . . . . Month number (01-12)
+%y. . . . . Year in century
+%Y . . . . Year with 4 digits
+%H . . . . Hour (00-23)
+%I . . . . . Hour (00-12)
+%M . . . . Minutes (00-59)
+%S . . . . . Seconds(00-59)
+%p . . . . . PM or AM
+%D . . . . Date as %m/%d/%y
+%r. . . . . Time as %I:%M:%S %p
+%R . . . . Time as %H:%M
+%T . . . . Time as %H:%M:%S
+%Z . . . . Time Zone Name
+clock scan dateString -option value...?
+The scan subcommand converts a human readable string to a system clock value, as would be returned by clock seconds
+The -format option is used to describe the format of the dateString
+
+If -format is not used, the command tries to guess the format of dateString, sometimes with surprising results. It's best to use -format. The following forms will probably return expected results:
+
+time
+A time of day in one of the formats shown below. Meridian may be AM, or PM, or a capitalization variant. If it is not specified, then the hour (hh) is interpreted as a 24 hour clock. Zone may be a three letter description of a time zone, EST, PDT, etc.
+hh:mm:ss ?meridian? ?zone?
+hhmm ?meridian? ?zone?
+date
+A date in one of the formats shown below.
+mm/dd/yy
+mm/dd
+monthname dd, yy
+monthname dd
+dd monthname yy
+dd monthname
+day, dd monthname yy
+
+
+
+
+
+set systemTime [clock seconds]
+
+puts "The time is: [clock format $systemTime -format %H:%M:%S]"
+puts "The date is: [clock format $systemTime -format %D]"
+puts [clock format $systemTime -format {Today is: %A, the %d of %B, %Y}]
+puts "\n the default format for the time is: [clock format $systemTime]\n"
+
+set halBirthBook "Jan 12, 1997"
+set halBirthMovie "Jan 12, 1992"
+set bookSeconds [clock scan $halBirthBook -format {%b %d, %Y}]
+set movieSeconds [set movieSeconds [clock scan $halBirthMovie -format {%b %d, %Y}]]
+
+puts "The book and movie versions of '2001, A Space Oddysey' had a"
+puts "discrepancy of [expr {$bookSeconds - $movieSeconds}] seconds in how"
+puts "soon we would have sentient computers like the HAL 9000"
+
+#-------------------------------------------
+More channel I/O - fblocked & fconfigure
+
+A non-blocking read or write means that instead of a gets call waiting until data is available, it will return immediately. If there was data available, it will be read, and if no data is available, the gets call will return a 0 length.
+
+If you have several channels that must be checked for input, you can use the fileevent command to trigger reads on the channels, and then use the fblocked command to determine when all the data is read.
+
+The fblocked and fconfigure commands provide more control over the behavior of a channel.
+
+The fblocked command checks whether a channel has returned all available input. It is useful when you are working with a channel that has been set to non-blocking mode and you need to determine if there should be data available, or if the channel has been closed from the other end.
+
+The fconfigure command has many options that allow you to query or fine tune the behavior of a channel including whether the channel is blocking or non-blocking, the buffer size, the end of line character, etc.
+
+fconfigure channel ?param1? ?value1? ?param2? ?value2?
+Configures the behavior of a channel. If no param values are provided, a list of the valid configuration parameters and their values is returned.
+If a single parameter is given on the command line, the value of that parameter is returned.
+
+If one or more pairs of param/value pairs are provided, those parameters are set to the requested value.
+
+Parameters that can be set include:
+
+-blocking . . . Determines whether or not the task will block when data cannot be moved on a channel. (i.e. If no data is available on a read, or the buffer is full on a write).
+-buffersize . . . The number of bytes that will be buffered before data is sent, or can be buffered before being read when data is received. The value must be an integer between 10 and 1000000.
+-translation . . . Sets how Tcl will terminate a line when it is output. By default, the lines are terminated with the newline, carriage return, or newline/carriage return that is appropriate to the system on which the interpreter is running.
+This can be configured to be:
+
+auto . . . Translates newline, carriage return, or newline/carriage return as an end of line marker. Outputs the correct line termination for the current platform.
+binary . . Treats newlines as end of line markers. Does not add any line termination to lines being output.
+cr . . . . Treats carriage returns as the end of line marker (and translates them to newline internally). Output lines are terminated with a carriage return. This is the Macintosh standard.
+crlf . . . Treats cr/lf pairs as the end of line marker, and terminates output lines with a carriage return/linefeed combination. This is the Windows standard, and should also be used for all line-oriented network protocols.
+lf . . . . Treats linefeeds as the end of line marker, and terminates output lines with a linefeed. This is the Unix standard.
+
+
+When the first write:
+
+puts -nonewline $sock "A Test Line"
+is done, the fileevent triggers the read, but the gets can't read characters because there is no newline. The gets returns a -1, and fblocked returns a 1. When a bare newline is sent, the data in the input buffer will become available, and the gets returns 18, and fblocked returns 0.
+
+
+proc serverOpen {channel addr port} {
+    puts "channel: $channel - from Address: $addr  Port: $port"
+    puts "The default state for blocking is: [fconfigure $channel -blocking]"
+    puts "The default buffer size is: [fconfigure $channel -buffersize ]"
+
+    # Set this channel to be non-blocking.
+    fconfigure $channel -blocking 0
+    set bl [fconfigure $channel -blocking]
+    puts "After fconfigure the state for blocking is: $bl"
+  
+    # Change the buffer size to be smaller
+    fconfigure $channel -buffersize 12
+    puts "After Fconfigure buffer size is: [fconfigure $channel -buffersize ]\n"
+
+    # When input is available, read it.
+    fileevent $channel readable "readLine Server $channel"
+}
+
+proc readLine {who channel} {
+    global didRead
+    global blocked
+
+    puts "There is input for $who on $channel"
+
+    set len [gets $channel line]
+    set blocked [fblocked $channel]
+    puts "Characters Read: $len  Fblocked: $blocked"
+
+    if {$len < 0} {
+        if {$blocked} {
+            puts "Input is blocked"
+        } else {
+            puts "The socket was closed - closing my end"
+            close $channel;
+        }
+    } else {
+        puts "Read $len characters:  $line"
+        puts $channel "This is a return"
+        flush $channel;
+    }
+    incr didRead;
+}
+
+set server [socket -server serverOpen 33000]
+
+after 120 update;	# This kicks MS-Windows machines for this application
+
+set sock [socket 127.0.0.1 33000]
+
+set bl [fconfigure $sock -blocking] 
+set bu [fconfigure $sock -buffersize]
+puts "Original setting for sock: Sock blocking: $bl buffersize: $bu"
+
+fconfigure $sock -blocking No
+fconfigure $sock -buffersize 8;
+
+set bl [fconfigure $sock -blocking] 
+set bu [fconfigure $sock -buffersize]
+puts "Modified setting for sock: Sock blocking: $bl buffersize: $bu\n"
+
+# Send a line to the server -- NOTE flush
+
+set didRead 0
+puts -nonewline $sock "A Test Line"
+flush $sock;
+
+# Loop until two reads have been done.
+
+while {$didRead < 2} {
+    # Wait for didRead to be set
+    vwait didRead
+    if {$blocked} {
+        puts $sock "Newline"
+        flush $sock
+        puts "SEND NEWLINE"
+    }
+}
+  
+set len [gets $sock line]
+puts "Return line: $len -- $line"
+close $sock
+vwait didRead
+catch {close $server}
+
+#-------------------------------------------
+Child interpreters
+
+The interp command creates new child interpreters within an existing interpreter. The child interpreters can have their own sets of variables, commands and open files, or they can be given access to items in the parent interpreter.
+
+If the child is created with the -safe option, it will not be able to access the file system, or otherwise damage your system. This feature allows a script to evaluate code from an unknown (and untrusted) source.
+
+The names of child interpreters are a hierarchical list. If interpreter foo is a child of interpreter bar, then it can be accessed from the toplevel interpreter as {bar foo}.
+
+The primary interpreter (what you get when you type tclsh) is the empty list {}.
+
+The interp command has several subcommands and options. A critical subset is:
+
+interp create -safe name
+Creates a new interpreter and returns the name. If the -safe option is used, the new interpreter will be unable to access certain dangerous system facilities.
+interp delete name
+Deletes the named child interpreter.
+interp eval args
+This is similar to the regular eval command, except that it evaluates the script in the child interpreter instead of the primary interpreter. The interp eval command concatenates the args into a string, and ships that line to the child interpreter to evaluate.
+interp alias srcPath srcCmd targetPath targetCmd arg arg
+The interp alias command allows a script to share procedures between child interpreters or between a child and the primary interpreter.
+Note that slave interpreters have a separate state and namespace, but do not have separate event loops. These are not threads, and they will not execute independently. If one slave interpreter gets stopped by a blocking I/O request, for instance, no other interpreters will be processed until it has unblocked.
+
+set i1 [interp create firstChild]
+set i2 [interp create secondChild]
+
+puts "first child interp:  $i1"
+puts "second child interp: $i2\n"
+
+# Set a variable "name" in each child interp, and
+#  create a procedure within each interp 
+#  to return that value
+foreach int [list $i1 $i2] {
+    interp eval $int [list set name $int]
+    interp eval $int {proc nameis {} {global name; return "nameis: $name";} }
+}  
+
+foreach int [list $i1 $i2] {
+    interp eval $int "puts \"EVAL IN $int: name is \$name\""
+    puts "Return from 'nameis' is: [interp eval $int nameis]"
+}
+
+#
+# A short program to return the value of "name"
+#
+proc rtnName {} {
+    global name
+    return "rtnName is: $name"
+}
+
+#
+# Alias that procedure to a proc in $i1
+interp alias $i1 rtnName {} rtnName 
+
+puts ""
+
+# This is an error.  The alias causes the evaluation
+#  to happen in the {} interpreter, where name is
+#  not defined.
+puts "firstChild reports [interp eval $i1 rtnName]"
+#-------------------------------------------
+
+#-------------------------------------------
+
+
